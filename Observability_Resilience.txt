@@ -1,0 +1,62 @@
+-----Part 5: Write Up------
+
+Describe retry/backoff for transient API failures, basic rate-limiting, and logging/metrics
+you'd capture:
+
+	retry/backoff:
+	The pipeline should not crash the whole run if a connection to the API fails once.
+	A max_retries value (e.g. 5) caps the number of attempts before allowing the pipeline
+	to fail loudly and alert. Each retry attempt increases in wait time (exponential
+	backoff: 1s, 2s, 4s, 8s, 16s) rather than retrying immediately, which avoids
+	hammering an already-struggling endpoint.
+
+		import time
+
+		def fetch_with_retry(endpoint, params=None, max_retries=5):
+			for attempt in range(max_retries):
+				try:
+					response = requests.get(endpoint, params=params)
+					response.raise_for_status()  # crashes if 4xx or 5xx
+					return response.json()
+
+				except Exception as e:
+					if attempt == max_retries - 1:
+						raise  # final attempt — give up and alert
+
+					wait = 2 ** attempt  # 1s, 2s, 4s, 8s, 16s
+					print(f"Failed, retrying in {wait}s...")
+					time.sleep(wait)  # actually waits
+
+
+	rate-limiting:
+	Check the API response headers to detect rate-limit thresholds proactively,
+	rather than waiting to hit a 429 error and reacting after the fact.
+
+	logging/metrics:
+	Every run logs clean vs. rejected records with reasoning, so nothing is silently
+	dropped. With more time and a live API, I'd also capture total run time and retry
+	count per run, to help spot degrading performance over time.
+
+
+	 Note how you'd validate row counts, null spikes, and schema drift over time:
+
+	 validate row counts:
+	 Set up an alert comparing the current run's row count to the previous run,
+	 flagged on percent change. An alternative is comparing to a fixed timeframe
+	 baseline (week-over-week, month-over-month).
+
+	 null spikes:
+	 Same pattern as row counts — compare NULL counts in the current run against
+	 the previous run, or against a fixed timeframe baseline.
+
+	 schema drift over time:
+
+		EXPECTED_COLUMNS = {"vehicle_id", "make", "model", "year", "VIN", "mileage", "dealership_id", "date_listed"}
+
+		def check_schema(df, expected):
+		    missing = expected - set(df.columns)
+		    if missing:
+		        raise ValueError(f"Schema drift detected — missing columns: {missing}")
+
+	This checks the incoming dataframe against a hardcoded set of expected columns
+	and raises immediately if any are missing.

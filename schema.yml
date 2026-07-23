@@ -1,0 +1,70 @@
+version: 2
+
+sources:
+  - name: vehicle_sales
+    description: "Raw vehicle sales data loaded from the API ingestion pipeline."
+    tables:
+      - name: vehicles
+      - name: sales
+      - name: dealerships
+
+models:
+  - name: stg_vehicles
+    description: "Cleaned and renamed vehicle records. One row per vehicle."
+    columns:
+      - name: vehicle_id
+        tests:
+          - not_null
+          - unique
+      - name: vin
+        tests:
+          - not_null
+          - unique
+      - name: year
+        tests:
+          - not_null
+      - name: mileage
+        tests:
+          - not_null
+      - name: dealership_id
+        tests:
+          - not_null
+          - relationships:
+              to: source('vehicle_sales', 'dealerships')
+              field: dealership_id
+
+  - name: stg_sales
+    columns:
+      - name: sale_id
+        tests:
+          - not_null
+          - unique
+      - name: vehicle_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_vehicles')
+              field: vehicle_id
+
+  - name: stg_dealerships
+    columns:
+      - name: dealership_id
+        tests:
+          - not_null
+          - unique
+      - name: region
+        tests:
+          - accepted_values:
+              values: ['Midwest', 'West', 'Northeast', 'South']
+
+  - name: mart_vehicle_sales
+    description: "Final analytics mart with discount and days_on_lot derived metrics."
+    columns:
+      - name: vehicle_id
+        tests:
+          - not_null
+          - unique
+      - name: discount
+        description: "Listed price minus final sale price. Positive = buyer received discount."
+      - name: days_on_lot
+        description: "Calendar days between date_listed and date_sold. Lower = faster inventory turnover."

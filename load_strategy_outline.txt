@@ -1,0 +1,35 @@
+Outline how you would load the data to a cloud warehouse (e.g.,
+Snowflake/BigQuery/Redshift), including the SQL query to create each table with all
+necessary constraints:
+
+Once the Python script runs, the clean CSVs land in a storage location — S3, in this
+case, since the target warehouse is Redshift. From there, the Redshift COPY command
+loads the data into the warehouse. From there, dbt builds the staging → intermediate →
+mart models to serve the end user/analyst.
+
+SQL query to create each table with all necessary constraints:
+
+CREATE TABLE IF NOT EXISTS staging.dealerships (
+    dealership_id   INTEGER         NOT NULL PRIMARY KEY,
+    name            VARCHAR(255)    NOT NULL,
+    region          VARCHAR(100)
+);
+
+CREATE TABLE IF NOT EXISTS staging.vehicles (
+    vehicle_id      INTEGER         NOT NULL PRIMARY KEY,
+    make            VARCHAR(100)    NOT NULL,
+    model           VARCHAR(100)    NOT NULL,
+    year            INTEGER         NOT NULL,
+    vin             VARCHAR(17)     NOT NULL UNIQUE,
+    mileage         NUMERIC(10,1)   NOT NULL,
+    dealership_id   INTEGER         REFERENCES staging.dealerships(dealership_id),
+    date_listed     DATE            NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS staging.sales (
+    sale_id         INTEGER         NOT NULL PRIMARY KEY,
+    vehicle_id      INTEGER         NOT NULL REFERENCES staging.vehicles(vehicle_id),
+    price           NUMERIC(12,2)   NOT NULL,
+    total_sale      NUMERIC(12,2)   NOT NULL,
+    date_sold       DATE            NOT NULL
+);

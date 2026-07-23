@@ -1,0 +1,3 @@
+vehicle_id,make,model,year,VIN,mileage,dealership_id,date_listed,_error
+202,Toyota,Pickup,1987,JT4RN67S4H0547559,-10.0,12,2205-01-01,invalid mileage: -10.0 (must be >= 0); invalid date_listed: 2205-01-01 00:00:00 (must not be in the future)
+211,Toyota,Rav4,2030,,999999.0,13,2025-01-01,invalid year: 2030 (must be 1886–2026); invalid VIN: '' (must be exactly 17 characters)

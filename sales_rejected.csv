@@ -1,0 +1,3 @@
+sale_id,vehicle_id,price,total_sale,date_sold,_error
+3,202,4525.12,5300.09,2025-10-25,vehicle_id 202 not in valid vehicles (orphaned sale — source vehicle was rejected)
+6,211,1000.0,1000.0,2025-11-15,vehicle_id 211 not in valid vehicles (orphaned sale — source vehicle was rejected)
